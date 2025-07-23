@@ -1,26 +1,34 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 
-exports.protect = (req, res, next) => {
-  const autherHeader = req.headers.authorization;
+const protect = (req, res, next) => {
+  const authHeader = req.headers.authorization;
 
-  if (!autherHeader || !autherHeader.startsWith("Bearer "))
-    return res.status(401).json({ error: "Unauthorized" });
-
-  const token = autherHeader.split(" ")[1];
+  if (!authHeader || !authHeader.startsWith('Bearer '))
+    return res.status(401).json({ message: 'Unauthorized' });
 
   try {
+    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
-  } catch (error) {
-    return res.status(401).json({ error: "Unauthorized" });
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid Token' });
   }
 };
 
-exports.restrictTo = (...roles) => {
+const restrictTo = (...roles) => {
   return (req, res, next) => {
-    if (!reols.includes(req.user.rol))
-      return res.status(403).json({ error: "Forbidden" });
+    if (!roles.includes(req.user.role))
+      return res.status(403).json({ message: 'Forbidden: Access denied' });
     next();
   };
 };
+
+const companyOnly = (req, res, next) => {
+  if (req.user.role !== 'company') {
+    return res.status(403).json({ message: 'Only companies can perform this action' });
+  }
+  next();
+};
+
+module.exports = { protect, restrictTo, companyOnly };
